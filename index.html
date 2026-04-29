@@ -642,6 +642,7 @@ function showResults() {
   renderContent(domIdx, s);
   showPhase('ph-2');
   switchTab(0);
+  sendToGoogleSheet(s, lucky, harmony);
 }
 
 function renderPentagon(s) {
@@ -735,7 +736,46 @@ function renderContent(di, s) {
 
 function openConsult() {
   const name = userData.name || '學員';
-  alert(`📩 預約諮詢\n\n感謝 ${name}！\n\n請透過以下方式聯繫老師預約付費諮詢：\n\n請將此頁面的測試結果截圖傳給老師。`);
+  const lineUrl = 'https://line.me/R/ti/p/@100lotig';
+  const msg = `📩 預約付費諮詢\n\n感謝 ${name} 完成五行能量測試！\n\n請加老師 Line 預約諮詢：\n👉 @100lotig\n\n點確定後將自動開啟 Line，或手動搜尋 @100lotig`;
+  if (confirm(msg)) {
+    window.open(lineUrl, '_blank');
+  }
+}
+
+// ── Google Sheet 傳送 ──────────────────────────────
+// 請將下方 SHEET_URL 換成你的 Google Apps Script 網址
+const SHEET_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL';
+
+async function sendToGoogleSheet(scores, luckyIdx, harmonyIdx) {
+  if (!SHEET_URL || SHEET_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL') return;
+  const el = EL[domIdx];
+  const total = Q.length;
+  const payload = {
+    timestamp: new Date().toLocaleString('zh-TW', {timeZone:'Asia/Taipei'}),
+    name: userData.name || '',
+    email: userData.email || '',
+    phone: userData.phone || '',
+    line: userData.line || '',
+    mainElement: el.name,
+    elementTitle: el.title,
+    木: Math.round(scores[0]/total*100),
+    火: Math.round(scores[1]/total*100),
+    金: Math.round(scores[2]/total*100),
+    水: Math.round(scores[3]/total*100),
+    土: Math.round(scores[4]/total*100),
+    貴人指數: luckyIdx,
+    五行平衡指數: harmonyIdx,
+    ...Object.fromEntries(Q.map((q,i) => [`Q${i+1}`, answers[i]!==null ? q.opts[answers[i]] : '']))
+  };
+  try {
+    await fetch(SHEET_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch(e) { console.log('Sheet error:', e); }
 }
 
 function switchTab(n) {

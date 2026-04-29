@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>五行能量測試系統</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #faf9f6;
+    --surface: #ffffff;
+    --surface2: #f4f2ee;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.18);
+    --text: #1a1a1a;
+    --text2: #5a5a5a;
+    --text3: #999;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --accent: #7c3aed;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141414;
+      --surface: #1e1e1e;
+      --surface2: #282828;
+      --border: rgba(255,255,255,0.1);
+      --border2: rgba(255,255,255,0.18);
+      --text: #f0f0f0;
+      --text2: #aaa;
+      --text3: #666;
+    }
+  }
+
+  body {
+    font-family: -apple-system, 'PingFang TC', 'Noto Sans TC', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem 1rem 3rem;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 600px;
+  }
+
+  .site-header {
+    text-align: center;
+    padding: 1rem 0 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .site-header .brand {
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+  }
+
+  .phase { display: none; }
+  .phase.active { display: block; }
+
+  /* Welcome */
+  .hero { text-align: center; padding: 2rem 1rem 1.5rem; }
+  .hero-symbol { margin: 0 auto 1.5rem; display: flex; justify-content: center; }
+  .hero h1 { font-size: 30px; font-weight: 600; letter-spacing: 0.06em; margin-bottom: 0.5rem; }
+  .hero p { font-size: 14px; color: var(--text2); line-height: 1.7; max-width: 380px; margin: 0 auto; }
+  .hero-stats { display: flex; justify-content: center; gap: 2rem; margin: 1.5rem 0; }
+  .stat { text-align: center; }
+  .stat-num { font-size: 22px; font-weight: 600; color: var(--accent); }
+  .stat-label { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  /* Progress */
+  .progress-wrap { margin-bottom: 1.25rem; }
+  .progress-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--text3); margin-bottom: 6px; }
+  .progress-bar { height: 3px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #7c3aed, #ec4899); border-radius: 2px; transition: width 0.4s ease; }
+
+  /* Question card */
+  .q-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1rem; }
+  .q-text { font-size: 16px; font-weight: 500; line-height: 1.55; margin-bottom: 1.25rem; }
+  .q-options { display: grid; gap: 8px; }
+  .q-opt {
+    background: var(--surface2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.7rem 1rem;
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+    line-height: 1.45;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .q-opt:hover { border-color: var(--border2); background: var(--surface); }
+  .q-opt.selected { border-color: #7c3aed; background: #f5f3ff; color: #4c1d95; }
+  @media (prefers-color-scheme: dark) {
+    .q-opt.selected { background: #2e1f5e; color: #c4b5fd; border-color: #7c3aed; }
+  }
+  .q-opt .el-badge { font-size: 11px; padding: 2px 7px; border-radius: 20px; background: var(--surface); border: 0.5px solid var(--border); color: var(--text2); white-space: nowrap; flex-shrink: 0; }
+
+  .nav-row { display: flex; gap: 8px; margin-top: 0.25rem; }
+
+  /* Buttons */
+  .btn {
+    border-radius: var(--radius-sm);
+    padding: 0.65rem 1.5rem;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: none;
+  }
+  .btn-primary { background: var(--text); color: var(--bg); display: block; width: 100%; }
+  .btn-primary:hover { opacity: 0.85; }
+  .btn-primary:disabled { opacity: 0.3; cursor: not-allowed; }
+  .btn-outline { background: transparent; color: var(--text2); border: 0.5px solid var(--border); }
+  .btn-outline:hover { background: var(--surface2); }
+  .btn-next { flex: 1; }
+
+  /* Results */
+  .result-hero { text-align: center; padding: 1.5rem 0 1rem; }
+  .result-icon { font-size: 52px; display: block; margin-bottom: 0.5rem; }
+  .result-name { font-size: 24px; font-weight: 600; margin-bottom: 0.25rem; }
+  .result-sub { font-size: 13px; color: var(--text2); }
+
+  .scores-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 1.25rem 0; }
+  .score-cell { text-align: center; padding: 0.65rem 0.2rem; background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-sm); }
+  .score-cell.top { border-color: #7c3aed; background: #f5f3ff; }
+  @media (prefers-color-scheme: dark) { .score-cell.top { background: #2e1f5e; } }
+  .score-em { font-size: 18px; display: block; margin-bottom: 3px; }
+  .score-n { font-size: 10px; color: var(--text2); display: block; margin-bottom: 4px; }
+  .score-track { height: 3px; background: var(--surface2); border-radius: 2px; margin: 4px 8px; overflow: hidden; }
+  .score-bar2 { height: 100%; border-radius: 2px; }
+  .score-pct { font-size: 11px; font-weight: 500; color: var(--text); margin-top: 3px; display: block; }
+
+  .pentagon-center { display: flex; justify-content: center; margin: 0.5rem 0; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 0; margin: 1.25rem 0 0; border-bottom: 0.5px solid var(--border); overflow-x: auto; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    padding: 0.55rem 0.8rem;
+    font-size: 12px;
+    color: var(--text2);
+    cursor: pointer;
+    border: none;
+    background: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    white-space: nowrap;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .tab.active { color: var(--text); border-bottom-color: var(--text); font-weight: 500; }
+
+  .tab-panel { display: none; padding: 1rem 0; }
+  .tab-panel.active { display: block; }
+
+  /* Content styles */
+  .section { margin-bottom: 1.25rem; }
+  .section-label { font-size: 10px; letter-spacing: 0.1em; color: var(--text3); text-transform: uppercase; margin-bottom: 0.5rem; }
+  .section-text { font-size: 13px; color: var(--text); line-height: 1.7; }
+
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 0.4rem; }
+  .tag { font-size: 12px; padding: 4px 10px; border-radius: 20px; border: 0.5px solid var(--border); background: var(--surface2); color: var(--text2); }
+  .tag-warn { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+  .tag-good { background: #d1fae5; color: #065f46; border-color: #a7f3d0; }
+  @media (prefers-color-scheme: dark) {
+    .tag-warn { background: #3d2800; color: #fcd34d; border-color: #92400e; }
+    .tag-good { background: #052e16; color: #6ee7b7; border-color: #065f46; }
+  }
+
+  .practice-item { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 1rem 1.1rem; margin-bottom: 0.75rem; }
+  .practice-title { font-size: 13px; font-weight: 500; margin-bottom: 0.3rem; }
+  .practice-desc { font-size: 12px; color: var(--text2); line-height: 1.65; }
+
+  /* Goodness panel */
+  .goodness-intro { background: linear-gradient(135deg, #fdf6ff, #f0fdf4); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1rem; }
+  @media (prefers-color-scheme: dark) { .goodness-intro { background: linear-gradient(135deg, #1e1535, #0f2018); } }
+  .goodness-intro-title { font-size: 13px; font-weight: 500; margin-bottom: 0.3rem; }
+  .goodness-intro-text { font-size: 12px; color: var(--text2); line-height: 1.7; }
+  .goodness-item { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 1rem 1.1rem; margin-bottom: 0.75rem; position: relative; overflow: hidden; }
+  .goodness-item::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+  .goodness-item.luck::before { background: #f59e0b; }
+  .goodness-item.deed::before { background: #10b981; }
+  .goodness-item.avoid::before { background: #ef4444; }
+  .goodness-badge { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 20px; margin-bottom: 0.4rem; font-weight: 500; }
+  .badge-luck { background: #fef3c7; color: #92400e; }
+  .badge-deed { background: #d1fae5; color: #065f46; }
+  .badge-avoid { background: #fee2e2; color: #991b1b; }
+  @media (prefers-color-scheme: dark) {
+    .badge-luck { background: #3d2800; color: #fcd34d; }
+    .badge-deed { background: #052e16; color: #6ee7b7; }
+    .badge-avoid { background: #3d0a0a; color: #fca5a5; }
+  }
+  .goodness-title { font-size: 13px; font-weight: 500; margin-bottom: 0.3rem; }
+  .goodness-desc { font-size: 12px; color: var(--text2); line-height: 1.65; }
+
+  /* Registration form */
+  .reg-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1rem; }
+  .reg-title { font-size: 16px; font-weight: 600; margin-bottom: 0.3rem; }
+  .reg-sub { font-size: 13px; color: var(--text2); margin-bottom: 1.25rem; line-height: 1.6; }
+  .form-group { margin-bottom: 0.9rem; }
+  .form-label { font-size: 12px; color: var(--text2); margin-bottom: 0.3rem; display: block; }
+  .form-label span { color: #ef4444; margin-left: 2px; }
+  .form-input { width: 100%; padding: 0.6rem 0.85rem; font-size: 14px; border: 0.5px solid var(--border2); border-radius: var(--radius-sm); background: var(--surface2); color: var(--text); outline: none; transition: border-color 0.15s; }
+  .form-input:focus { border-color: var(--accent); background: var(--surface); }
+  .form-input.error { border-color: #ef4444; }
+  .form-err { font-size: 11px; color: #ef4444; margin-top: 3px; display: none; }
+  .privacy-note { font-size: 11px; color: var(--text3); margin-top: 1rem; line-height: 1.6; text-align: center; }
+
+  /* Lucky index */
+  .lucky-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 1rem 0 0.5rem; }
+  .lucky-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; text-align: center; }
+  .lucky-card.highlight { background: linear-gradient(135deg, #fdf6ff, #fefce8); border-color: #c4b5fd; }
+  @media (prefers-color-scheme: dark) { .lucky-card.highlight { background: linear-gradient(135deg, #1e1535, #1c1a00); border-color: #7c3aed; } }
+  .lucky-label { font-size: 10px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.4rem; }
+  .lucky-score { font-size: 28px; font-weight: 700; line-height: 1; }
+  .lucky-score.gold { color: #d97706; }
+  .lucky-score.purple { color: #7c3aed; }
+  .lucky-desc { font-size: 11px; color: var(--text2); margin-top: 0.3rem; line-height: 1.4; }
+  .lucky-bar-wrap { margin-top: 6px; height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+  .lucky-bar-fill { height: 100%; border-radius: 2px; transition: width 1s ease; }
+
+  /* Paywall */
+  .goodness-preview { max-height: 65px; overflow: hidden; position: relative; margin-bottom: 0; }
+  .goodness-preview::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 40px; background: linear-gradient(transparent, var(--bg)); pointer-events: none; }
+  .paywall-gate { background: var(--surface); border: 0.5px solid #c4b5fd; border-radius: var(--radius-sm); padding: 1.1rem 1.25rem; text-align: center; margin-bottom: 0.75rem; }
+  .paywall-icon { font-size: 22px; margin-bottom: 0.4rem; }
+  .paywall-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 0.25rem; }
+  .paywall-sub { font-size: 12px; color: var(--text2); line-height: 1.6; margin-bottom: 0.75rem; }
+  .btn-consult { background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; border: none; border-radius: var(--radius-sm); padding: 0.6rem 1.5rem; font-size: 13px; font-weight: 500; cursor: pointer; display: inline-block; }
+  .btn-consult:hover { opacity: 0.9; }
+
+  .restart-section { text-align: center; margin-top: 1.5rem; padding-top: 1rem; border-top: 0.5px solid var(--border); }
+  .footer { text-align: center; margin-top: 3rem; font-size: 11px; color: var(--text3); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="site-header">
+    <div class="brand">五行能量系統</div>
+  </div>
+
+  <!-- Phase 0: Welcome -->
+  <div class="phase active" id="ph-0">
+    <div class="hero">
+      <div class="hero-symbol">
+        <svg width="130" height="130" viewBox="0 0 130 130">
+          <defs>
+            <filter id="glow"><feGaussianBlur stdDeviation="2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+          <polygon points="65,12 92,42 82,76 48,76 38,42" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.2"/>
+          <circle cx="65" cy="65" r="30" fill="none" stroke="#7c3aed" stroke-width="0.5" stroke-dasharray="3,3" opacity="0.5"/>
+          <circle cx="65" cy="65" r="6" fill="#7c3aed" opacity="0.15"/>
+          <!-- Labels -->
+          <text x="65" y="8" text-anchor="middle" fill="#7c3aed" font-size="12" font-weight="600">火</text>
+          <text x="103" y="60" text-anchor="middle" fill="#7c3aed" font-size="12" font-weight="600">土</text>
+          <text x="88" y="97" text-anchor="middle" fill="#7c3aed" font-size="12" font-weight="600">金</text>
+          <text x="42" y="97" text-anchor="middle" fill="#7c3aed" font-size="12" font-weight="600">水</text>
+          <text x="27" y="60" text-anchor="middle" fill="#7c3aed" font-size="12" font-weight="600">木</text>
+          <!-- Center -->
+          <text x="65" y="70" text-anchor="middle" fill="#7c3aed" font-size="10" opacity="0.6">五行</text>
+        </svg>
+      </div>
+      <h1>五行能量測試</h1>
+      <p>透過 20 道問題，探索你的五行能量分布<br>了解你的特質、健康、人際與命運走向</p>
+      <div class="hero-stats">
+        <div class="stat"><div class="stat-num">20</div><div class="stat-label">道題目</div></div>
+        <div class="stat"><div class="stat-num">5</div><div class="stat-label">大面向分析</div></div>
+        <div class="stat"><div class="stat-num">★</div><div class="stat-label">行善提升貴人運</div></div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="startQuiz()">開始測試</button>
+  </div>
+
+  <!-- Phase 0.5: Registration -->
+  <div class="phase" id="ph-reg">
+    <div class="reg-card">
+      <div class="reg-title">📋 填寫基本資料</div>
+      <div class="reg-sub">請填寫以下資料，以便老師後續為你提供個人化諮詢。</div>
+      <div class="form-group">
+        <label class="form-label">全名<span>*</span></label>
+        <input class="form-input" id="f-name" type="text" placeholder="請輸入你的全名" />
+        <div class="form-err" id="e-name">請填寫姓名</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email<span>*</span></label>
+        <input class="form-input" id="f-email" type="email" placeholder="example@email.com" />
+        <div class="form-err" id="e-email">請填寫有效的 Email</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">電話<span>*</span></label>
+        <input class="form-input" id="f-phone" type="tel" placeholder="09xx-xxx-xxx" />
+        <div class="form-err" id="e-phone">請填寫電話號碼</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Line ID</label>
+        <input class="form-input" id="f-line" type="text" placeholder="你的 Line ID（選填）" />
+      </div>
+      <div class="privacy-note">🔒 資料僅供老師諮詢使用，不對外公開</div>
+    </div>
+    <button class="btn btn-primary" onclick="submitReg()">填寫完成，開始測試 →</button>
+  </div>
+
+  <!-- Phase 1: Quiz -->
+  <div class="phase" id="ph-1">
+    <div class="progress-wrap">
+      <div class="progress-meta">
+        <span id="q-label">第 1 題</span>
+        <span id="q-pct">0%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="prog" style="width:0%"></div></div>
+    </div>
+    <div id="q-container"></div>
+    <div class="nav-row">
+      <button class="btn btn-outline" id="btn-prev" onclick="prevQ()" disabled>← 上一題</button>
+      <button class="btn btn-primary btn-next" id="btn-next" onclick="nextQ()" disabled>下一題 →</button>
+    </div>
+  </div>
+
+  <!-- Phase 2: Results -->
+  <div class="phase" id="ph-2">
+    <div class="result-hero">
+      <span class="result-icon" id="res-icon"></span>
+      <div class="result-name" id="res-name"></div>
+      <div class="result-sub" id="res-sub"></div>
+    </div>
+
+    <div class="scores-row" id="scores-row"></div>
+    <div class="lucky-row" id="lucky-row"></div>
+    <div class="pentagon-center" id="pentagon"></div>
+
+    <div class="tabs" id="tabs">
+      <button class="tab active" onclick="switchTab(0)">特質</button>
+      <button class="tab" onclick="switchTab(1)">健康</button>
+      <button class="tab" onclick="switchTab(2)">人際&amp;命運</button>
+      <button class="tab" onclick="switchTab(3)">練習</button>
+      <button class="tab" onclick="switchTab(4)">行善&amp;貴人運</button>
+    </div>
+
+    <div class="tab-panel active" id="tp-0"></div>
+    <div class="tab-panel" id="tp-1"></div>
+    <div class="tab-panel" id="tp-2"></div>
+    <div class="tab-panel" id="tp-3"></div>
+    <div class="tab-panel" id="tp-4"></div>
+
+    <div class="restart-section">
+      <button class="btn btn-outline" onclick="restart()">重新測試</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">五行能量測試系統 &copy; 2025</div>
+
+<script>
+const Q = [
+  { q: "你在面對壓力時，通常會？", opts: ["立刻行動，想辦法解決","靈活變通，找替代方案","深思熟慮，反覆分析","尋求支持，照顧情緒","穩步計畫，按部就班"], el: [0,1,2,3,4] },
+  { q: "你的溝通風格比較偏向？", opts: ["直接、有力、主導對話","熱情、有感染力、擅長說服","冷靜、邏輯清晰、重細節","溫柔、感同身受、傾聽為主","謹慎、踏實、重視規則"], el: [0,1,2,3,4] },
+  { q: "你對「計畫」的態度是？", opts: ["計畫趕不上變化，隨機應變","計畫太死板，喜歡開創可能性","必須有完整計畫才行動","計畫中要考慮所有人的感受","計畫就是要嚴格執行"], el: [0,1,2,3,4] },
+  { q: "在人際關係中，你通常扮演？", opts: ["領袖、決策者","啟發者、氣氛製造者","智囊、問題分析者","協調者、情緒支柱","穩定者、可靠後盾"], el: [0,1,2,3,4] },
+  { q: "你最容易感到不舒服的情況是？", opts: ["被限制、被控制","無聊、一成不變","混亂、缺乏邏輯","被忽視、孤立無援","不確定性、沒有保障"], el: [0,1,2,3,4] },
+  { q: "你的身體比較容易出現哪類問題？", opts: ["肌肉緊繃、頭痛、血壓問題","心臟、血液循環、失眠","呼吸系統、皮膚、過敏","腎臟、腰痛、耳鳴","腸胃、消化、脾胃虛弱"], el: [0,1,2,3,4] },
+  { q: "你對「成功」的定義是？", opts: ["征服挑戰、達成目標","創造影響、被人記住","找到真理、完美呈現","讓周圍人幸福、和諧相處","建立穩固基業、長久發展"], el: [0,1,2,3,4] },
+  { q: "你的情緒爆發方式通常是？", opts: ["容易生氣、直接衝突","情緒起伏大、熱情過激","壓抑、悲傷或憂慮","哭泣、過度依賴他人","沉默抵抗、固執己見"], el: [0,1,2,3,4] },
+  { q: "你對金錢的態度是？", opts: ["大方花費，不計小節","享受揮霍，追求體驗","精打細算，注重報酬","分享給所需要的人","穩健儲蓄，長期規劃"], el: [0,1,2,3,4] },
+  { q: "你最享受哪種環境氛圍？", opts: ["充滿競爭與挑戰的環境","熱鬧歡樂的社交場合","安靜整潔、有條理的空間","溫馨、有情感連結的家庭氛圍","大自然、穩重踏實的環境"], el: [0,1,2,3,4] },
+  { q: "朋友描述你最可能說的是？", opts: ["勇敢、有魄力、有點衝","熱情、有趣、愛出風頭","聰明、嚴謹、有點冷漠","貼心、溫暖、有點依賴","可靠、勤奮、有點保守"], el: [0,1,2,3,4] },
+  { q: "你在團隊中最大的弱點是？", opts: ["太強勢，難以妥協","情緒影響太大，不夠穩定","太完美主義，難以配合","太在乎他人感受而忘記自己","太固執，不願接受新想法"], el: [0,1,2,3,4] },
+  { q: "你的睡眠狀況通常？", opts: ["睡眠少但精力充沛","入睡難，腦袋停不下來","容易有多夢或早醒","睡眠品質差、腰酸背痛","嗜睡、常感沉重疲倦"], el: [0,1,2,3,4] },
+  { q: "你在人生遇到重大變動時？", opts: ["主動出擊、改變現況","興奮期待、充滿創意","焦慮分析，反覆衡量利弊","擔心失去安全感與歸屬","謹慎觀察，慢慢適應"], el: [0,1,2,3,4] },
+  { q: "你最難以接受別人對你的評價是？", opts: ["你很自大、蠻橫","你很膚淺、不成熟","你很無情、冷漠","你很脆弱、沒主見","你很頑固、跟不上時代"], el: [0,1,2,3,4] },
+  { q: "你喜歡什麼樣的工作方式？", opts: ["獨立負責，快速執行","自由發揮，充滿創意空間","深入研究，追求完整","協作分工，照顧彼此","規律穩定，按表操課"], el: [0,1,2,3,4] },
+  { q: "你的人際關係困擾通常來自？", opts: ["他人覺得你太霸道、不留情","你太快熱情，對方接不住","你太冷靜，讓人感到距離","你太黏人或情緒勒索","你固執不讓步，悶聲不響"], el: [0,1,2,3,4] },
+  { q: "你的飲食習慣偏向？", opts: ["重口味、喜歡辛辣刺激","甜食、精緻美食愛好者","重視養生、口味偏淡辛香","鹹食、喜歡海鮮豐富蛋白質","重視原味、偏愛甜糯溫和食物"], el: [0,1,2,3,4] },
+  { q: "你在人生中最害怕的事是？", opts: ["失去自由與掌控權","被遺忘、沒有人記得你","犯錯、不被信任","孤獨無助、無人依靠","不穩定、失去一切根基"], el: [0,1,2,3,4] },
+  { q: "你認為改善自己最有效的方式是？", opts: ["立刻行動、挑戰自我極限","尋找靈感、點燃熱情","學習知識、訓練思維","修復關係、深化情感連結","建立紀律、穩固日常習慣"], el: [0,1,2,3,4] }
+];
+
+const EL = [
+  {
+    name:"木", icon:"🌿", color:"#16a34a",
+    title:"木型人 — 開創者", sub:"仁義之氣，生發進取",
+    traits:["目標導向、充滿幹勁","有強烈正義感與理想主義","決策果斷、行動力強","容易生氣、難以妥協","對自由極度渴望"],
+    healthRisk:["肝臟疲勞、脂肪肝","眼睛乾澀、視力問題","筋骨緊繃、肌腱發炎","偏頭痛、血壓波動","情緒壓抑引發的消化問題"],
+    healthGood:["多攝取深綠色蔬菜","早起伸展與瑜珈","疏肝理氣的茶飲（玫瑰、薄荷）"],
+    inter:["過於強勢讓人感到壓迫","難以傾聽他人不同意見","對失敗的人缺乏耐心","易與土型人發生摩擦（木剋土）"],
+    destiny:"木旺之人多走開創之路，適合創業、改革、帶領團隊。但若木氣過盛而缺乏金來制衡，容易意氣用事、草率行動、樹敵太多。",
+    improve:["練習主動傾聽，每次對話先讓對方說完","學習「彎而不折」的柔韌之道","每週安排靜心時間，釋放累積的怒氣"],
+    practices:[
+      {t:"晨間伸展吐納", d:"每天早上 7-9 點（肝經時間）做 15 分鐘拉伸，搭配深呼吸，幫助肝氣疏通、情緒釋放。"},
+      {t:"書寫憤怒日記", d:"每當感到憤怒或受阻，立刻用筆寫下感受，再重讀一遍後決定是否回應，訓練衝動控制。"},
+      {t:"培養金屬元素習慣", d:"練習明確規則與自我紀律，設定個人界線並尊重他人界線，以金平衡木的過激。"},
+      {t:"親近樹木與大地", d:"每週到森林或公園赤腳行走，感受木性能量的落地感，減少過度亢進。"}
+    ],
+    goodness: {
+      intro: "木型人的貴人運來自「仁慈寬恕」的能量。木主生長、主仁，當你願意放下強勢、給予他人機會，天地之氣會回饋給你有力的支持者。",
+      deeds: [
+        {type:"deed", label:"行善方式", t:"植樹護綠、認養動物", d:"木型人與自然生命頻率相通。定期認養流浪動物、參與植樹活動，或資助環境保育，能快速積累木德之氣，引動願意扶持你事業的長輩貴人。"},
+        {type:"deed", label:"行善方式", t:"提攜後輩、傳授技能", d:"木代表生發，給予後進者機會與指導，是木型人最強的功德場。免費分享知識、帶領新人、開設公益課程，能吸引到有資源的合作夥伴主動找上你。"},
+        {type:"deed", label:"行善方式", t:"為受委屈者發聲", d:"木型人天生正義感強，為弱勢群體仗義執言，或協助法律援助、勞工權益，能累積義氣之德，吸引與你志同道合的高能量人脈。"},
+        {type:"luck", label:"提升貴人運", t:"放下舊有恩怨，主動和解", d:"木氣過旺者，心中積怨最傷貴人運。主動與過去有摩擦的人釋懷，哪怕只是內心的原諒，能瞬間解開阻礙貴人靠近的能量封印。"},
+        {type:"luck", label:"提升貴人運", t:"每月初一捐助環境或生態公益", d:"選定一個你認同的生態保育或動物救援機構，定期小額捐助。持續性的善行比一次大筆更能積累穩定的貴人磁場。"},
+        {type:"avoid", label:"避免損耗貴人運", t:"避免嫉妒他人成功、踩低對手", d:"木型人競爭心強，若言語中常常貶低他人或暗中使絆，木德受損，貴人會悄悄遠離。批評他人前先問：這樣說是為了讓對方成長，還是洩憤？"}
+      ]
+    }
+  },
+  {
+    name:"火", icon:"🔥", color:"#dc2626",
+    title:"火型人 — 啟發者", sub:"禮儀之氣，熱情燃放",
+    traits:["天生魅力、感染力強","充滿激情與創造力","直覺敏銳、善於鼓勵他人","情緒起伏大、難以持久","渴望被看見與欣賞"],
+    healthRisk:["心臟與循環系統問題","失眠、心悸、焦慮","血壓不穩、易上火","舌頭、口腔問題","情緒耗竭、燃盡症候群"],
+    healthGood:["避免過度興奮的環境","多攝取苦瓜、蓮子等降火食物","午間小睡（心經時間 11-13 點）"],
+    inter:["感情升溫太快讓人措手不及","容易承諾過多而無法兌現","需要持續被關注，否則失落感強","與水型人容易有摩擦（水剋火）"],
+    destiny:"火旺之人光芒四射，適合表演、演講、創作、社會影響。但若缺乏水的滋潤，熱情燃盡後易走入低谷，命運大起大落。",
+    improve:["建立承諾前先評估自己的承受能力","培養一項長期、安靜的技能（如寫作、繪畫）","每天練習 10 分鐘靜坐，讓心火降沉"],
+    practices:[
+      {t:"冥想降火靜心", d:"每天午後 12-14 點（心經旺時）靜坐 10 分鐘，意識放在心臟部位，感受呼吸讓熱情穩定落地。"},
+      {t:"感恩日記三件事", d:"每晚睡前記錄三件當天讓你感到滿足的小事，減少對外部認可的依賴，培養內在滋養。"},
+      {t:"水元素補充練習", d:"每天聆聽流水聲音 10 分鐘，或接觸海洋、溫泉，以水平衡火的過盛能量。"},
+      {t:"完成一件小事原則", d:"每天選一件事做到真正完成再開始下一件，訓練持久力與自信的踏實感。"}
+    ],
+    goodness: {
+      intro: "火型人的貴人運來自「真誠給予光與溫暖」的能量。火主禮、主情，當你的熱情是無私的分享而非求回報，最有影響力的人物會主動被你吸引。",
+      deeds: [
+        {type:"deed", label:"行善方式", t:"為他人舉辦公益活動或義演", d:"火型人天生是舞台上的人，把這份能量用於公益演講、義賣、社區活動，能將個人魅力化為集體善業，吸引欣賞你的人脈圈主動拓展。"},
+        {type:"deed", label:"行善方式", t:"探訪孤老、陪伴需要溫暖的人", d:"火代表心、代表愛，定期探訪養老院、兒童之家，給予真誠的陪伴與關懷，能深度累積火德，化解過去因情緒衝動造成的業力阻礙。"},
+        {type:"deed", label:"行善方式", t:"公開讚美他人，傳播正能量", d:"在社群媒體上真誠推薦他人的作品，或在公開場合讚美同事的貢獻，讓別人因你而被看見。火型人的讚美有巨大感染力，是最輕鬆的日常善行。"},
+        {type:"luck", label:"提升貴人運", t:"每逢重要節氣點燃蠟燭祈願感恩", d:"火型人與光的能量相通。在節氣日點燃白色或金色蠟燭，默想感謝三位曾幫助過你的人，有助於打開接受貴人能量的通道。"},
+        {type:"luck", label:"提升貴人運", t:"資助有才華卻沒有機會的人", d:"找到身邊有潛力但缺資源的朋友或後輩，給予實質支持或引薦機會。火燃燒他物而生光，此舉最能激活火型人的貴人磁場。"},
+        {type:"avoid", label:"避免損耗貴人運", t:"避免言語誇大、承諾後失信", d:"火型人習慣用熱情說大話，一旦失信，信任感崩塌極快。貴人最怕看到你言行不一。說到做到的小事，比豪情萬丈的承諾更能留住貴人。"}
+      ]
+    }
+  },
+  {
+    name:"金", icon:"⚔️", color:"#b45309",
+    title:"金型人 — 完美主義者", sub:"義氣之氣，精準清明",
+    traits:["條理分明、重視原則","自我要求極高","思維清晰、善於分析","情感內斂、難以表達","對不公正極度敏感"],
+    healthRisk:["肺部、支氣管問題","皮膚乾燥、過敏、濕疹","大腸功能失調（便秘或腹瀉）","悲傷情緒壓抑引發免疫下降","鼻過敏、鼻竇炎"],
+    healthGood:["深度腹式呼吸練習","多攝取白色食物（梨、白木耳、百合）","秋季特別保養呼吸道"],
+    inter:["完美主義讓人感到壓力","冷靜外表讓人覺得不好親近","批評性思維容易傷人","與火型人有天然摩擦（火剋金）"],
+    destiny:"金旺之人適合法律、醫療、技術、系統設計等需要精準的領域。但若金氣過重而缺乏木的彈性，容易僵化孤立，錯失人情溫暖帶來的機遇。",
+    improve:["練習欣賞「80分就夠好」的心態","主動表達感謝與欣賞，不只是批評","嘗試藝術創作來釋放情感"],
+    practices:[
+      {t:"晨間呼吸訓練", d:"每天早上 5-7 點（肺經旺時）做 4-7-8 呼吸法：吸氣 4 秒、憋氣 7 秒、呼氣 8 秒，重複 5 輪，強化肺氣。"},
+      {t:"悲傷釋放儀式", d:"每週寫下一件讓你心有不甘或悲傷的事，然後撕掉或燒掉，象徵放下執著，療癒金氣壓抑的情緒。"},
+      {t:"木元素柔化練習", d:"每週嘗試一件沒有計畫的事，允許自己犯錯，以木的生長性軟化金的剛硬。"},
+      {t:"聲音療癒（商音）", d:"每天聆聽商調音樂（五音療法的金元素音頻），或練習吟唱「啊」音，疏通肺氣。"}
+    ],
+    goodness: {
+      intro: "金型人的貴人運來自「清廉正直、慷慨分享智慧」的能量。金主義、主收，當你把自己精準的判斷力用於幫助他人，而非只是批評，最厲害的人才願意與你並肩。",
+      deeds: [
+        {type:"deed", label:"行善方式", t:"提供專業義診或免費法律諮詢", d:"金型人往往身懷一技之長，定期用你的專業幫助無力負擔的人，是最直接的金德積累。醫療、法律、財務、技術領域的金型人尤其適合此善行。"},
+        {type:"deed", label:"行善方式", t:"捐助呼吸道疾病或肺癌相關公益", d:"金對應肺，捐助空污改善、肺病患者救助或戒菸公益，是與金型人能量最共鳴的善行，能解開身體業力，同時引動健康與事業上的貴人。"},
+        {type:"deed", label:"行善方式", t:"幫助他人整理、建立系統秩序", d:"金型人擅長邏輯與組織。義務幫助弱勢家庭整理財務、協助非營利組織建立管理系統，把條理化的能力化為善業，能吸引賞識你才能的伯樂。"},
+        {type:"luck", label:"提升貴人運", t:"定期清理、捐出不用的物品", d:"金氣旺需要流通。每季清理家中不需要的物品捐給物資站，讓資源流向有需要的人，能打破金型人容易「囤積執著」的能量阻塞，讓新貴人有空間進入。"},
+        {type:"luck", label:"提升貴人運", t:"主動欣賞並表達對他人的認可", d:"金型人習慣批評多於讚美。每天有意識地找一件事稱讚他人，並且說出口。這個練習能軟化金氣的鋒芒，讓你在人際中更受歡迎，貴人自然聚集。"},
+        {type:"avoid", label:"避免損耗貴人運", t:"避免論斷他人是非、傳播負面評價", d:"金型人判斷力強，卻容易在背後評論他人缺點。這是最傷金德的行為，也最容易讓貴人對你敬而遠之。說他人壞話之前，先想：這話若傳回去，我願意負責嗎？"}
+      ]
+    }
+  },
+  {
+    name:"水", icon:"💧", color:"#1d4ed8",
+    title:"水型人 — 智慧者", sub:"智慧之氣，深邃靜流",
+    traits:["直覺深邃、善於洞察人心","記憶力強、學習能力卓越","情感豐富但不輕易示人","容易焦慮與過度思考","渴望深度連結與理解"],
+    healthRisk:["腎臟與膀胱問題","腰酸背痛、膝蓋無力","耳鳴、聽力問題","性功能與荷爾蒙失調","恐懼感引發的慢性疲勞"],
+    healthGood:["黑色食物補腎（黑豆、黑芝麻、海藻）","泡腳、溫腰護腎","冬季特別保養腎氣"],
+    inter:["情感過於深邃讓人感到神秘難懂","容易陷入過去、難以放下","恐懼心理容易吸引有控制欲的人","與土型人有摩擦（土剋水）"],
+    destiny:"水旺之人適合哲學、心理學、研究、靈性修行等領域。但若腎氣不足，容易意志消沉、機會從指間流失，命運多坎坷或反覆。",
+    improve:["練習「當下」意識，減少對過去的沉溺","建立一個讓自己感到安全的日常儀式","嘗試主動說出內心感受，不要全部藏起來"],
+    practices:[
+      {t:"泡腳暖腎儀式", d:"每天睡前 21-23 點（腎經旺時）以 40°C 熱水泡腳 20 分鐘，可加入艾草或薑片，強化腎氣、增加安全感。"},
+      {t:"恐懼命名練習", d:"每週寫下三個讓你感到恐懼的事，標記它的來源（過去？未來？幻想？），訓練與恐懼共存而不被淹沒。"},
+      {t:"火元素啟動", d:"每天讓自己接觸陽光 15 分鐘，或點燭光冥想，以火的溫暖對抗水的過度寒涼與封閉。"},
+      {t:"流動身體練習", d:"每週做 2 次瑜珈或太極，讓身體的流動喚醒水的靈活本質，也幫助情緒流通不淤積。"}
+    ],
+    goodness: {
+      intro: "水型人的貴人運來自「深厚智慧無私流淌」的能量。水主智、主藏，當你願意將內心深處的洞察與智慧分享出來，而非囤積自守，最有深度的貴人會被你吸引。",
+      deeds: [
+        {type:"deed", label:"行善方式", t:"資助教育或知識傳播公益", d:"水型人與智慧、學問的頻率最相通。資助偏鄉教育、獎學金、圖書館或知識型公益平台，是水型人最強的功德積累方式，能引動學術、文化圈的貴人相助。"},
+        {type:"deed", label:"行善方式", t:"協助迷失者找到方向", d:"水型人洞察力強，能看穿他人內心的困惑。義務心理陪伴、職涯諮詢、或在論壇真誠分享人生經驗，把深邃的智慧化為照亮他人的燈塔，是水德最美的表達。"},
+        {type:"deed", label:"行善方式", t:"淨灘、護水、捐助水資源公益", d:"水型人與水的自然元素同頻。參與河流淨化、海洋保育或乾淨水源的公益捐助，能直接強化水型人的元素能量，同時解開腎系統的業力積累。"},
+        {type:"luck", label:"提升貴人運", t:"將過去的傷痛化為智慧，公開分享", d:"水型人習慣把痛苦藏在心底。若能勇敢地把曾經受傷的經歷轉化成文章、演講或分享，反而會吸引最多共鳴者與支持者，是水型人最大的貴人引動術。"},
+        {type:"luck", label:"提升貴人運", t:"每月選一天沉默行善，不求被看見", d:"水型人本質是深邃隱藏的能量。每月選一天匿名捐助或默默幫助他人，不讓任何人知道，這種不求回報的善行對水型人的磁場提升最為深遠。"},
+        {type:"avoid", label:"避免損耗貴人運", t:"避免過度懷疑他人動機、封閉自己", d:"水型人容易因為害怕受傷而對貴人設防，過度分析對方的意圖反而讓真正的貴人望而卻步。試著允許自己被幫助，接受善意是水型人最重要的功課。"}
+      ]
+    }
+  },
+  {
+    name:"土", icon:"🌍", color:"#7c3aed",
+    title:"土型人 — 守護者", sub:"信義之氣，包容承載",
+    traits:["踏實可靠、值得信賴","照顧他人的天生本能","耐力強、穩定度高","容易犧牲自我而忘記需求","過度思慮、難以決斷"],
+    healthRisk:["脾胃消化問題","肌肉無力、容易疲倦","濕氣過重、體型虛腫","思慮過重引發的焦慮","淋巴與免疫系統問題"],
+    healthGood:["黃色食物健脾（南瓜、番薯、小米）","飯後散步促進消化","避免過度思慮與憂慮"],
+    inter:["過度付出讓人感到虧欠或窒息","難以拒絕他人，累積怨氣","過於固執己見時關係僵化","與木型人容易有摩擦（木剋土）"],
+    destiny:"土旺之人適合教育、醫療、社會工作、家族事業等需要長期投入的領域。但若土氣過盛而缺乏木的疏通，容易停滯不前，錯失突破的時機。",
+    improve:["學習說「不」，並且不需要解釋","為自己設定非照顧他人的「我時間」","定期評估哪些付出是真心、哪些是恐懼"],
+    practices:[
+      {t:"脾胃養護飲食儀式", d:"每天早上 7-9 點（脾胃旺時）吃溫熱早餐，細嚼慢咽，避免生冷食物，強化土元素的滋養根基。"},
+      {t:"自我關懷日記", d:"每天記錄一件純粹為自己做的事，不論多小，訓練「先照顧自己」的意識，減少過度付出。"},
+      {t:"木元素活化", d:"每週設定一個小小目標並完成，培養行動力與開創感，以木的生長性軟化土的停滯。"},
+      {t:"健走大地連結", d:"每天赤腳踩草地或土地 10 分鐘，讓身體與大地元素產生共鳴，釋放累積的濕重能量。"}
+    ],
+    goodness: {
+      intro: "土型人的貴人運來自「真誠包容、建立穩固的善的根基」的能量。土主信、主承載，當你對自己也如對他人般慈悲，天地厚德會為你帶來最可靠、最長久的貴人。",
+      deeds: [
+        {type:"deed", label:"行善方式", t:"為社區建立長期支持系統", d:"土型人天生是承載者。發起或參與社區互助計畫、食物銀行、鄰里關懷網絡，把你穩定可靠的特質化為社會的根基，能吸引社會地位穩固的貴人長期相挺。"},
+        {type:"deed", label:"行善方式", t:"供養與照顧老人、慢性病患者", d:"土型人對應脾胃，與「滋養」能量最相通。定期探訪慢性病患者、協助長者日常，或捐助老人相關公益，是土型人最直接的德行積累，能引動長輩型貴人。"},
+        {type:"deed", label:"行善方式", t:"提供穩定的庇護所與食物", d:"「食物」是土的核心能量。不論是定期請人吃飯、參與愛心廚房、捐助糧食，還是為流離者提供短期居所，這些與「地」和「食」相關的善行對土型人效果最強。"},
+        {type:"luck", label:"提升貴人運", t:"學習對自己的需求說「是」", d:"土型人最大的功課是自我接納。每天做一件純粹為自己而做的事，並且不帶愧疚感。這個看似自私的行為，反而是打開土型人接受貴人禮遇的關鍵練習。"},
+        {type:"luck", label:"提升貴人運", t:"在重要節氣祭祖、感謝根源", d:"土型人與祖先能量有深刻連結。清明、冬至等節氣誠心祭拜、感謝家族先輩，能打通土型人命運中因家族業力而阻礙的貴人通道，啟動根源性的支持力量。"},
+        {type:"avoid", label:"避免損耗貴人運", t:"避免無限度的犧牲、累積暗中的怨恨", d:"土型人最容易在「默默付出」中累積怨氣，而這種未表達的怨恨是土德最大的漏洞。當你發現自己在心裡計算付出了多少，就是立刻說出需求的信號。"}
+      ]
+    }
+  }
+];
+
+const EL_NAMES = ["木","火","金","水","土"];
+let answers = new Array(Q.length).fill(null);
+let cur = 0;
+let domIdx = 0;
+let finalScores = [];
+let userData = {};
+
+function showPhase(id) {
+  document.querySelectorAll('.phase').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function startQuiz() { showPhase('ph-reg'); }
+function restart() { userData={}; answers=new Array(Q.length).fill(null); cur=0; showPhase('ph-0'); }
+
+function submitReg() {
+  const name = document.getElementById('f-name').value.trim();
+  const email = document.getElementById('f-email').value.trim();
+  const phone = document.getElementById('f-phone').value.trim();
+  const line = document.getElementById('f-line').value.trim();
+  let ok = true;
+  const showErr = (id, show) => { document.getElementById(id).style.display = show ? 'block' : 'none'; };
+  const markErr = (id, hasErr) => { document.getElementById(id).classList.toggle('error', hasErr); };
+  if (!name) { showErr('e-name',true); markErr('f-name',true); ok=false; } else { showErr('e-name',false); markErr('f-name',false); }
+  if (!email || !email.includes('@')) { showErr('e-email',true); markErr('f-email',true); ok=false; } else { showErr('e-email',false); markErr('f-email',false); }
+  if (!phone) { showErr('e-phone',true); markErr('f-phone',true); ok=false; } else { showErr('e-phone',false); markErr('f-phone',false); }
+  if (!ok) return;
+  userData = { name, email, phone, line };
+  cur=0; answers=new Array(Q.length).fill(null);
+  showPhase('ph-1'); renderQ();
+}
+
+function calcLuckyIndex(s, di) {
+  const total = s.reduce((a,b)=>a+b,0)||1;
+  const balance = 100 - Math.round((Math.max(...s)-Math.min(...s))/total*100)*1.8;
+  // Harmony score: how well-rounded the distribution is
+  const avg = total/5;
+  const variance = s.reduce((a,v)=>a+Math.pow(v-avg,2),0)/5;
+  const harmony = Math.max(0, Math.round(100 - variance*8));
+  // Lucky index: weighted combo
+  const dominant = s[di]/total;
+  const luckyBase = Math.round(harmony*0.45 + Math.min(balance,100)*0.35 + (1-dominant)*100*0.2);
+  return { lucky: Math.min(98, Math.max(42, luckyBase)), harmony: Math.min(99, Math.max(38, harmony)) };
+}
+
+function renderQ() {
+  const q = Q[cur];
+  const pct = Math.round((cur/Q.length)*100);
+  document.getElementById('prog').style.width = pct+'%';
+  document.getElementById('q-label').textContent = `第 ${cur+1} / ${Q.length} 題`;
+  document.getElementById('q-pct').textContent = pct+'%';
+  document.getElementById('btn-prev').disabled = cur===0;
+  document.getElementById('btn-next').disabled = answers[cur]===null;
+  document.getElementById('btn-next').textContent = cur===Q.length-1 ? '查看結果 →' : '下一題 →';
+
+  document.getElementById('q-container').innerHTML = `
+    <div class="q-card">
+      <div class="q-text">${q.q}</div>
+      <div class="q-options">
+        ${q.opts.map((o,i)=>`
+          <button class="q-opt ${answers[cur]===i?'selected':''}" onclick="pick(${i})">
+            <span class="el-badge">${EL_NAMES[q.el[i]]}</span>${o}
+          </button>`).join('')}
+      </div>
+    </div>`;
+}
+
+function pick(i) { answers[cur]=i; document.getElementById('btn-next').disabled=false; renderQ(); }
+function prevQ() { if(cur>0){cur--;renderQ();} }
+function nextQ() { if(cur<Q.length-1){cur++;renderQ();}else showResults(); }
+
+function showResults() {
+  const s=[0,0,0,0,0];
+  Q.forEach((q,qi)=>{ if(answers[qi]!==null) s[q.el[answers[qi]]]++; });
+  finalScores = s;
+  domIdx = s.indexOf(Math.max(...s));
+  const el = EL[domIdx];
+
+  document.getElementById('res-icon').textContent = el.icon;
+  document.getElementById('res-name').textContent = el.title;
+  document.getElementById('res-sub').textContent = el.sub;
+
+  // Five-element scores
+  const total = Q.length;
+  document.getElementById('scores-row').innerHTML = EL.map((e,i)=>{
+    const pct = Math.round((s[i]/total)*100);
+    return `<div class="score-cell ${i===domIdx?'top':''}">
+      <span class="score-em">${e.icon}</span>
+      <span class="score-n">${e.name}</span>
+      <div class="score-track"><div class="score-bar2" style="width:${pct}%;background:${e.color}"></div></div>
+      <span class="score-pct">${pct}%</span>
+    </div>`;
+  }).join('');
+
+  // Lucky index
+  const { lucky, harmony } = calcLuckyIndex(s, domIdx);
+  const luckyLevel = lucky>=80?'極強':lucky>=65?'偏強':lucky>=50?'中等':lucky>=38?'偏弱':'待強化';
+  const harmonyLevel = harmony>=80?'高度平衡':harmony>=60?'尚可':harmony>=40?'略有失衡':'明顯失衡';
+  document.getElementById('lucky-row').innerHTML = `
+    <div class="lucky-card highlight">
+      <div class="lucky-label">⭐ 貴人指數</div>
+      <div class="lucky-score purple">${lucky}</div>
+      <div class="lucky-bar-wrap"><div class="lucky-bar-fill" style="width:${lucky}%;background:linear-gradient(90deg,#7c3aed,#a855f7)"></div></div>
+      <div class="lucky-desc">${luckyLevel}｜需透過行善持續提升</div>
+    </div>
+    <div class="lucky-card">
+      <div class="lucky-label">☯ 五行平衡指數</div>
+      <div class="lucky-score gold">${harmony}</div>
+      <div class="lucky-bar-wrap"><div class="lucky-bar-fill" style="width:${harmony}%;background:linear-gradient(90deg,#d97706,#fbbf24)"></div></div>
+      <div class="lucky-desc">${harmonyLevel}</div>
+    </div>`;
+
+  renderPentagon(s);
+  renderContent(domIdx, s);
+  showPhase('ph-2');
+  switchTab(0);
+}
+
+function renderPentagon(s) {
+  const total = s.reduce((a,b)=>a+b,0)||1;
+  const cx=110,cy=105,r=80,ri=12;
+  const ang = [-90,-18,54,126,198].map(d=>d*Math.PI/180);
+  const outer = ang.map(a=>[cx+r*Math.cos(a), cy+r*Math.sin(a)]);
+  const inner = ang.map((a,i)=>{
+    const f = ri + (r-ri)*Math.min(s[i]/(total/5*2),1);
+    return [cx+f*Math.cos(a), cy+f*Math.sin(a)];
+  });
+  const lbl = ang.map(a=>[cx+(r+18)*Math.cos(a), cy+(r+18)*Math.sin(a)]);
+  const labels = ["木🌿","火🔥","金⚔️","水💧","土🌍"];
+  const colors = EL.map(e=>e.color);
+
+  document.getElementById('pentagon').innerHTML = `
+    <svg width="220" height="210" viewBox="0 0 220 210">
+      <polygon points="${outer.map(p=>p.join(',')).join(' ')}" fill="none" stroke="rgba(0,0,0,0.1)" stroke-width="1"/>
+      ${[.33,.66].map(f=>{
+        const pts=ang.map(a=>[cx+r*f*Math.cos(a),cy+r*f*Math.sin(a)]).map(p=>p.join(',')).join(' ');
+        return `<polygon points="${pts}" fill="none" stroke="rgba(0,0,0,0.06)" stroke-width="0.5"/>`;
+      }).join('')}
+      ${ang.map(a=>`<line x1="${cx}" y1="${cy}" x2="${cx+r*Math.cos(a)}" y2="${cy+r*Math.sin(a)}" stroke="rgba(0,0,0,0.07)" stroke-width="0.5"/>`).join('')}
+      <polygon points="${inner.map(p=>p.join(',')).join(' ')}" fill="rgba(124,58,237,0.12)" stroke="#7c3aed" stroke-width="1.5"/>
+      ${inner.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="${colors[i]}"/>`).join('')}
+      ${lbl.map((p,i)=>`<text x="${p[0]}" y="${p[1]}" text-anchor="middle" dominant-baseline="middle" font-size="11" fill="#888">${labels[i]}</text>`).join('')}
+    </svg>`;
+}
+
+function renderContent(di, s) {
+  const el = EL[di];
+  const dominated = s.filter(x=>x>=3).length>2;
+
+  document.getElementById('tp-0').innerHTML = `
+    <div class="section"><div class="section-label">核心特質</div>
+      <div class="tags">${el.traits.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+    </div>
+    <div class="section"><div class="section-label">能量分布說明</div>
+      <div class="section-text">你的能量以「${el.name}」為主導，代表${el.sub}的能量充沛。${dominated?'你的五行分布相對平衡，各種能量都有所展現。':'建議有意識地補充相對不足的元素能量。'}</div>
+    </div>`;
+
+  document.getElementById('tp-1').innerHTML = `
+    <div class="section"><div class="section-label">容易出現的健康問題</div>
+      <div class="tags">${el.healthRisk.map(t=>`<span class="tag tag-warn">${t}</span>`).join('')}</div>
+    </div>
+    <div class="section"><div class="section-label">養生建議</div>
+      <div class="tags">${el.healthGood.map(t=>`<span class="tag tag-good">${t}</span>`).join('')}</div>
+    </div>`;
+
+  document.getElementById('tp-2').innerHTML = `
+    <div class="section"><div class="section-label">人際關係常見困境</div>
+      <div class="tags">${el.inter.map(t=>`<span class="tag tag-warn">${t}</span>`).join('')}</div>
+    </div>
+    <div class="section"><div class="section-label">命運走向</div>
+      <div class="section-text">${el.destiny}</div>
+    </div>
+    <div class="section"><div class="section-label">改善行動</div>
+      <div class="tags">${el.improve.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+    </div>`;
+
+  document.getElementById('tp-3').innerHTML = el.practices.map(p=>`
+    <div class="practice-item">
+      <div class="practice-title">${p.t}</div>
+      <div class="practice-desc">${p.d}</div>
+    </div>`).join('');
+
+  const g = el.goodness;
+  const badgeClass = {deed:'badge-deed', luck:'badge-luck', avoid:'badge-avoid'};
+  const badgeLabel = {deed:'行善方式', luck:'提升貴人運', avoid:'避免損耗'};
+  // First item shown in preview, rest paywalled
+  const firstDeed = g.deeds[0];
+  document.getElementById('tp-4').innerHTML = `
+    <div class="goodness-intro">
+      <div class="goodness-intro-title">✦ ${el.name}型人的貴人運密碼</div>
+      <div class="goodness-intro-text">${g.intro}</div>
+    </div>
+    <div class="goodness-preview">
+      <div class="goodness-item ${firstDeed.type}" style="margin-bottom:0;">
+        <span class="goodness-badge ${badgeClass[firstDeed.type]}">${badgeLabel[firstDeed.type]}</span>
+        <div class="goodness-title">${firstDeed.t}</div>
+        <div class="goodness-desc">${firstDeed.d}</div>
+      </div>
+    </div>
+    <div class="paywall-gate">
+      <div class="paywall-icon">🔒</div>
+      <div class="paywall-title">還有 ${g.deeds.length-1} 個專屬行善方法與貴人運秘訣</div>
+      <div class="paywall-sub">包含：如何避免損耗貴人運的行為、最強提升磁場的儀式、以及針對你${el.name}型能量的完整行善計畫，需透過付費諮詢取得。</div>
+      <button class="btn-consult" onclick="openConsult()">預約付費諮詢 →</button>
+    </div>`;
+}
+
+function openConsult() {
+  const name = userData.name || '學員';
+  alert(`📩 預約諮詢\n\n感謝 ${name}！\n\n請透過以下方式聯繫老師預約付費諮詢：\n\n請將此頁面的測試結果截圖傳給老師。`);
+}
+
+function switchTab(n) {
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===n));
+  document.querySelectorAll('.tab-panel').forEach((t,i)=>t.classList.toggle('active',i===n));
+}
+</script>
+</body>
+</html>

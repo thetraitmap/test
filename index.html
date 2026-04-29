@@ -745,7 +745,7 @@ function openConsult() {
 
 // ── Google Sheet 傳送 ──────────────────────────────
 // 請將下方 SHEET_URL 換成你的 Google Apps Script 網址
-const SHEET_URL = 'https://script.google.com/macros/s/ABC123.../exec';
+const SHEET_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL';
 
 async function sendToGoogleSheet(scores, luckyIdx, harmonyIdx) {
   if (!SHEET_URL || SHEET_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL') return;
